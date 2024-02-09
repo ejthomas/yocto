@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "yocto"
+version = "0.1.0"
+description = "Generate shortened web addresses quickly and easily."
+authors = ["Edward Thomas <ed.j.thomas@protonmail.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+flask = "^3.0.2"
+pytest = "^8.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
