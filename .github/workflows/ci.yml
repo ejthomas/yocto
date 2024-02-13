@@ -1,0 +1,52 @@
+name: Workflow for Codecov yocto
+on:
+  push:
+    branches: [main]
+  pull_request:
+    
+jobs: 
+    run:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Set up Python 3.10
+              id: setup-python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.10'
+
+            - name: Cache poetry installation
+              uses: actions/cache@v4
+              with:
+                path: ~/.local
+                key: poetry-1.7.1-0
+
+            - name: Install and configure poetry
+              uses: snok/install-poetry@v1
+              with:
+                version: 1.7.1
+                virtualenvs-create: true
+                virtualenvs-in-project: true
+                installer-parallel: true
+
+            - name: Cache dependencies
+              id: cache-deps
+              uses: actions/cache@v4
+              with:
+                path: .venv
+                key: pydeps-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+            - name: Install dependencies if no cache
+              run: poetry install --no-interaction --no-root
+              if: steps.cache-deps.outputs.cache-hit != 'true'
+
+            - name: Install project
+              run: poetry install --no-interaction
+
+            - name: Run tests and collect coverage
+              run: pytest --cov tests
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v3
