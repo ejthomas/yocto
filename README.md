@@ -1,4 +1,5 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![codecov](https://codecov.io/gh/ejthomas/yocto/graph/badge.svg?token=D2IERL1W6N)](https://codecov.io/gh/ejthomas/yocto)
 
 # Yocto
 
