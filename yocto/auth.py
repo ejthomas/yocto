@@ -12,6 +12,15 @@ USERNAME_IDENTIFIER = "username"
 PASSWORD_HASH_IDENTIFIER = "password_hash"
 CREATION_DATE_IDENTIFIER = "creation_date"
 
+USERNAME_MIN_LENGTH = 1
+USERNAME_MAX_LENGTH = 100
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 100
+
+def _verify_type(parameter, expected_type):
+    if not isinstance(parameter, expected_type):
+        raise TypeError(f"Expected type '{expected_type}'")
+
 class UserAuthenticator:
     def __init__(self, database):
         self.database = database
@@ -19,20 +28,25 @@ class UserAuthenticator:
     @staticmethod
     def validate_username(username):
         """
-        Validate the provided username, ensuring it contains only supported
-        characters and rejecting any that could pose a security issue.
+        Validate the provided username.
+
+        Username must be unique in the database and between auth.USERNAME_MIN_LENGTH 
+        and auth.USERNAME_MAX_LENGTH characters long.
         
         :param str username: The username to validate.
         
+        :raises TypeError: If the username is not a string.
         :raises UsernameInvalidError: If the username cannot be used.
 
         :return: True if username is valid, otherwise raises.
         :rtype: bool
         """
-        if not isinstance(username, str):
-            raise TypeError("Username must be type 'str'")
-        if not 1 <= len(username) <= 100:
-            raise UsernameInvalidError("Length must be at least 1 and at most 100 characters")
+        _verify_type(username, str)
+        if not USERNAME_MIN_LENGTH <= len(username) <= USERNAME_MAX_LENGTH:
+            raise UsernameInvalidError(
+                f"Length must be at least {USERNAME_MIN_LENGTH} and at most "
+                f"{USERNAME_MAX_LENGTH} characters"
+            )
         return True
 
     @staticmethod
@@ -40,19 +54,24 @@ class UserAuthenticator:
         """
         Validate that a password satisfies the length and complexity 
         requirements of the application.
+
+        Password must be between auth.PASSWORD_MIN_LENGTH and auth.PASSWORD_MAX_LENGTH characters long, 
+        and contain at least one uppercase letter, lowercase letter, number and special character.
         
         :param str password: The password to validate.
         
+        :raises TypeError: If the password is not a string.
         :raises PasswordInvalidError: If the password does not satisfy the
         requirements.
 
         :return: True if password is valid, otherwise raises.
         :rtype: bool
         """
-        if len(password) < 8:
-            raise PasswordInvalidError("Passwords must be at least 8 characters")
+        _verify_type(password, str)
+        if len(password) < PASSWORD_MIN_LENGTH:
+            raise PasswordInvalidError(f"Passwords must be at least {PASSWORD_MIN_LENGTH} characters")
         if len(password) > 100:
-            raise PasswordInvalidError("Maximum password length 100 characters")
+            raise PasswordInvalidError(f"Maximum password length {PASSWORD_MAX_LENGTH} characters")
         if regex.search(r"[\p{N}]", password) is None:
             raise PasswordInvalidError("Passwords must contain at least one number")
         if regex.search(r"[\p{Lu}]", password) is None:
@@ -65,6 +84,14 @@ class UserAuthenticator:
         
 
     def register_user(self, username, password):
+        """
+        Register a new user in the users database.
+
+        :param str username: The username of the new user.
+        :param str password: The password of the new user.
+
+        :raises UserExistsError: If the username already exists in the database.
+        """
         self.validate_username(username)
         if self.database.find_one({USERNAME_IDENTIFIER: username}) is not None:
             raise UserExistsError
@@ -78,7 +105,20 @@ class UserAuthenticator:
         )
 
     def authenticate_user(self, username, password):
-        self.validate_username(username)
+        """
+        Authenticate a user's credentials against the database.
+
+        :param str username: The user's username.
+        :param str password: The user's password.
+
+        :raises UserNotFoundError: If the username is not in the database.
+        :raises PasswordMismatchError: If the user's password is not correct.
+
+        :return: True if password is correct, otherwise raises.
+        :rtype: bool
+        """
+        _verify_type(username, str)
+        _verify_type(password, str)
         user_record = self.database.find_one({USERNAME_IDENTIFIER: username})
         if user_record is None:
             raise UserNotFoundError
@@ -91,7 +131,14 @@ class UserAuthenticator:
             raise PasswordMismatchError
 
     def delete_user(self, username):
-        self.validate_username(username)
+        """
+        Delete a user account from the database.
+
+        :param str username: The username of the account to delete.
+
+        :raises UserNotFoundError: If the 
+        """
+        _verify_type(username, str)
         result = self.database.delete_one({USERNAME_IDENTIFIER: username})
         if result.deleted_count == 0:
             raise UserNotFoundError
