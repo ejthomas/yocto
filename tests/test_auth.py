@@ -12,8 +12,10 @@ from yocto.auth import (
     PasswordMismatchError
 )
 
-mongo_proc = factories.mongo_proc(port=8888, logsdir="/tmp")
-mongo_client = factories.mongodb("mongo_proc")
+# Requires mongod running and available at localhost:27017
+# E.g. via Docker container
+mongo_noproc = factories.mongo_noproc(host="localhost", port=27017)
+mongo_client = factories.mongodb("mongo_noproc")
 
 class TestUserAuthenticator:
     def test_validate_username(self):
