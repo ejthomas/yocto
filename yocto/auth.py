@@ -2,6 +2,7 @@ from datetime import datetime
 import regex
 import unicodedata
 
+from pymongo.collection import Collection
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -16,7 +17,8 @@ from yocto.lib.exceptions import (
 from yocto.lib.utils import (
     USERNAME_IDENTIFIER,
     PASSWORD_HASH_IDENTIFIER,
-    CREATION_DATE_IDENTIFIER
+    ACCOUNT_CREATION_DATE_IDENTIFIER,
+    CREATOR_USERNAME_IDENTIFIER,
 )
 
 ph = PasswordHasher()
@@ -28,7 +30,8 @@ PASSWORD_MAX_LENGTH = 100
 
 class UserAuthenticator:
     def __init__(self, database):
-        self.database = database
+        self._users: Collection = database.users
+        self._urls: Collection = database.urls
 
     @staticmethod
     def validate_username(username):
@@ -98,14 +101,14 @@ class UserAuthenticator:
         :raises UserExistsError: If the username already exists in the database.
         """
         self.validate_username(username)
-        if self.database.find_one({USERNAME_IDENTIFIER: username}) is not None:
+        if self._users.find_one({USERNAME_IDENTIFIER: username}) is not None:
             raise UserExistsError
         self.validate_password(password)
-        self.database.insert_one(
+        self._users.insert_one(
             {
                 USERNAME_IDENTIFIER: username,
                 PASSWORD_HASH_IDENTIFIER: ph.hash(unicodedata.normalize("NFKC", password)),
-                CREATION_DATE_IDENTIFIER: datetime.now(),
+                ACCOUNT_CREATION_DATE_IDENTIFIER: datetime.now(),
             }
         )
 
@@ -124,7 +127,7 @@ class UserAuthenticator:
         """
         _verify_type(username, str)
         _verify_type(password, str)
-        user_record = self.database.find_one({USERNAME_IDENTIFIER: username})
+        user_record = self._users.find_one({USERNAME_IDENTIFIER: username})
         if user_record is None:
             raise UserNotFoundError
         try:
@@ -141,9 +144,14 @@ class UserAuthenticator:
 
         :param str username: The username of the account to delete.
 
-        :raises UserNotFoundError: If the 
+        :raises UserNotFoundError: If `username` is not a username in the 
+            users database collection.
         """
         _verify_type(username, str)
-        result = self.database.delete_one({USERNAME_IDENTIFIER: username})
+        # Delete user's URLs
+        self._urls.delete_many({CREATOR_USERNAME_IDENTIFIER: username})
+        # Delete user account
+        result = self._users.delete_one({USERNAME_IDENTIFIER: username})
+        # Raise exception if no account deleted
         if result.deleted_count == 0:
             raise UserNotFoundError

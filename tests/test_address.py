@@ -15,7 +15,7 @@ from yocto.lib.exceptions import (
 from yocto.lib.utils import (
     LONG_URL_IDENTIFIER,
     SHORT_ID_IDENTIFIER,
-    CREATION_DATE_IDENTIFIER,
+    URL_CREATION_DATE_IDENTIFIER,
     CREATOR_USERNAME_IDENTIFIER,
 )
 
@@ -33,7 +33,7 @@ class TestAddressManager:
             AddressManager.extract_id_from_short_url("https://yoc.to 1234567")
 
     def test_generate_short_id(self, mongo_client):
-        am = AddressManager(mongo_client.tests.urls, mongo_client.tests.users)
+        am = AddressManager(mongo_client.tests)
         alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
         for length in range(4, 12):
             short_id = am.generate_short_id(length=length)
@@ -42,14 +42,13 @@ class TestAddressManager:
 
     def test_store_url_and_id(self, mongo_client):
         urls: Collection = mongo_client.tests.urls
-        users: Collection = mongo_client.tests.users
-        am = AddressManager(urls, users)
+        am = AddressManager(mongo_client.tests)
 
         long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
         short_id = "abcdef1"
         creator_username = "example_user1"
 
-        auth = UserAuthenticator(users)
+        auth = UserAuthenticator(mongo_client.tests)
         auth.register_user(creator_username, "S3cret_p4$$word")  # ensure user exists
 
         am.store_url_and_id(long_url, short_id, creator_username)
@@ -58,25 +57,23 @@ class TestAddressManager:
         assert result is not None
         assert result[SHORT_ID_IDENTIFIER] == short_id
         assert result[CREATOR_USERNAME_IDENTIFIER] == creator_username
-        assert CREATION_DATE_IDENTIFIER in result
+        assert URL_CREATION_DATE_IDENTIFIER in result
 
     def test_store_url_and_id_raises_if_url_invalid(self, mongo_client):
-        urls: Collection = mongo_client.tests.urls
-        users: Collection = mongo_client.tests.users
-        am = AddressManager(urls, users)
+        am = AddressManager(mongo_client.tests)
 
         long_url = "ht://wwwww.example.c5/"
         short_id = "abcdef1"
         creator_username = "example_user1"
 
-        auth = UserAuthenticator(users)
+        auth = UserAuthenticator(mongo_client.tests)
         auth.register_user(creator_username, "S3cret_p4$$word")  # ensure user exists
 
         with pytest.raises(UrlInvalidError):
             am.store_url_and_id(long_url, short_id, creator_username)
 
     def test_store_url_and_id_raises_if_creator_nonexistent(self, mongo_client):
-        am = AddressManager(mongo_client.tests.urls, mongo_client.tests.users)
+        am = AddressManager(mongo_client.tests)
 
         long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
         short_id = "abcdef1"
@@ -87,8 +84,7 @@ class TestAddressManager:
 
     def test_store_url_and_id_raises_if_url_exists(self, mongo_client):
         urls: Collection = mongo_client.tests.urls
-        users: Collection = mongo_client.tests.users
-        am = AddressManager(urls, users)
+        am = AddressManager(mongo_client.tests)
 
         long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
         short_id = "abcdef1"
@@ -98,12 +94,12 @@ class TestAddressManager:
             {
                 LONG_URL_IDENTIFIER: long_url,
                 SHORT_ID_IDENTIFIER: short_id,
-                CREATION_DATE_IDENTIFIER: datetime.now(),
+                URL_CREATION_DATE_IDENTIFIER: datetime.now(),
                 CREATOR_USERNAME_IDENTIFIER: creator_username,
             }
         )
 
-        auth = UserAuthenticator(users)
+        auth = UserAuthenticator(mongo_client.tests)
         auth.register_user(creator_username, "S3cret_p4$$word")  # ensure user exists
 
         with pytest.raises(UrlExistsError):
@@ -111,7 +107,7 @@ class TestAddressManager:
 
     def test_lookup_short_id(self, mongo_client):
         urls: Collection = mongo_client.tests.urls
-        am = AddressManager(urls, mongo_client.tests.users)
+        am = AddressManager(mongo_client.tests)
         long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
         short_id = "abcdef1"
         creator_username = "example_user1"
@@ -119,7 +115,7 @@ class TestAddressManager:
             {
                 LONG_URL_IDENTIFIER: long_url,
                 SHORT_ID_IDENTIFIER: short_id,
-                CREATION_DATE_IDENTIFIER: datetime.now(),
+                URL_CREATION_DATE_IDENTIFIER: datetime.now(),
                 CREATOR_USERNAME_IDENTIFIER: creator_username,
             }
         )
@@ -129,7 +125,7 @@ class TestAddressManager:
 
     def test_delete_url(self, mongo_client):
         urls: Collection = mongo_client.tests.urls
-        am = AddressManager(urls, mongo_client.tests.users)
+        am = AddressManager(mongo_client.tests)
         long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
         short_id = "abcdef1"
         creator_username = "example_user1"
@@ -137,7 +133,7 @@ class TestAddressManager:
             {
                 LONG_URL_IDENTIFIER: long_url,
                 SHORT_ID_IDENTIFIER: short_id,
-                CREATION_DATE_IDENTIFIER: datetime.now(),
+                URL_CREATION_DATE_IDENTIFIER: datetime.now(),
                 CREATOR_USERNAME_IDENTIFIER: creator_username,
             }
         )
@@ -149,7 +145,7 @@ class TestAddressManager:
 
     def test_delete_short_id(self, mongo_client):
         urls: Collection = mongo_client.tests.urls
-        am = AddressManager(urls, mongo_client.tests.users)
+        am = AddressManager(mongo_client.tests)
         long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
         short_id = "abcdef1"
         creator_username = "example_user1"
@@ -157,7 +153,7 @@ class TestAddressManager:
             {
                 LONG_URL_IDENTIFIER: long_url,
                 SHORT_ID_IDENTIFIER: short_id,
-                CREATION_DATE_IDENTIFIER: datetime.now(),
+                URL_CREATION_DATE_IDENTIFIER: datetime.now(),
                 CREATOR_USERNAME_IDENTIFIER: creator_username,
             }
         )
