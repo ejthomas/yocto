@@ -1,25 +1,30 @@
 from datetime import datetime
-# import regex
 import regex
 import unicodedata
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
-ph = PasswordHasher()
+from yocto.lib.utils import _verify_type
+from yocto.lib.exceptions import (
+    UsernameInvalidError,
+    UserExistsError,
+    UserNotFoundError,
+    PasswordInvalidError,
+    PasswordMismatchError
+)
+from yocto.lib.utils import (
+    USERNAME_IDENTIFIER,
+    PASSWORD_HASH_IDENTIFIER,
+    CREATION_DATE_IDENTIFIER
+)
 
-USERNAME_IDENTIFIER = "username"
-PASSWORD_HASH_IDENTIFIER = "password_hash"
-CREATION_DATE_IDENTIFIER = "creation_date"
+ph = PasswordHasher()
 
 USERNAME_MIN_LENGTH = 1
 USERNAME_MAX_LENGTH = 100
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 100
-
-def _verify_type(parameter, expected_type):
-    if not isinstance(parameter, expected_type):
-        raise TypeError(f"Expected type '{expected_type}'")
 
 class UserAuthenticator:
     def __init__(self, database):
@@ -142,18 +147,3 @@ class UserAuthenticator:
         result = self.database.delete_one({USERNAME_IDENTIFIER: username})
         if result.deleted_count == 0:
             raise UserNotFoundError
-    
-class UsernameInvalidError(Exception):
-    pass
-
-class PasswordInvalidError(Exception):
-    pass
-    
-class UserExistsError(Exception):
-    pass
-
-class UserNotFoundError(Exception):
-    pass
-
-class PasswordMismatchError(Exception):
-    pass

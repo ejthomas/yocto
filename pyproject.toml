@@ -15,6 +15,7 @@ pytest-mongo = "^3.0.0"
 argon2-cffi = "^23.1.0"
 regex = "^2023.12.25"
 pytest-cov = "^4.1.0"
+validators = "^0.22.0"
 
 
 [build-system]
