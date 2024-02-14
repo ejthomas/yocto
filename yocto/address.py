@@ -16,13 +16,13 @@ from yocto.lib.exceptions import (
 from yocto.lib.utils import (
     LONG_URL_IDENTIFIER,
     SHORT_ID_IDENTIFIER,
-    CREATION_DATE_IDENTIFIER,
+    URL_CREATION_DATE_IDENTIFIER,
     CREATOR_USERNAME_IDENTIFIER,
     USERNAME_IDENTIFIER,
 )
 
 class AddressManager:
-    def __init__(self, urls_collection, users_collection):
+    def __init__(self, database):
         """
         Class to manage URLs and their corresponding shortened versions.
 
@@ -39,8 +39,8 @@ class AddressManager:
         :param users_collection: The collection where user credentials are stored.
         :type users_collection: pymongo.collection.Collection
         """
-        self._urls: Collection = urls_collection
-        self._users: Collection = users_collection
+        self._urls: Collection = database.urls
+        self._users: Collection = database.users
 
     @staticmethod
     def extract_id_from_short_url(short_url):
@@ -127,7 +127,7 @@ class AddressManager:
             {
                 LONG_URL_IDENTIFIER: long_url,
                 SHORT_ID_IDENTIFIER: short_id,
-                CREATION_DATE_IDENTIFIER: datetime.now(),
+                URL_CREATION_DATE_IDENTIFIER: datetime.now(),
                 CREATOR_USERNAME_IDENTIFIER: creator_username,
             }
         )
