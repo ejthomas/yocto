@@ -6,7 +6,6 @@ import math
 from pymongo.collection import Collection
 from validators import url
 
-from yocto.lib.utils import _verify_type
 from yocto.lib.exceptions import (
     UrlInvalidError,
     UrlExistsError,
@@ -14,6 +13,7 @@ from yocto.lib.exceptions import (
     UserNotFoundError
 )
 from yocto.lib.utils import (
+    _verify_type,
     LONG_URL_IDENTIFIER,
     SHORT_ID_IDENTIFIER,
     URL_CREATION_DATE_IDENTIFIER,
@@ -34,10 +34,8 @@ class AddressManager:
         is the ID which will be stored in the database, as the rest of the URL
         can be constructed outside the database.
 
-        :param urls_collection: The collection where web addresses are stored.
-        :type urls_collection: pymongo.collection.Collection
-        :param users_collection: The collection where user credentials are stored.
-        :type users_collection: pymongo.collection.Collection
+        :param database: The database containing the users and urls collections.
+        :type database: pymongo.database.Database
         """
         self._urls: Collection = database.urls
         self._users: Collection = database.users
@@ -84,19 +82,16 @@ class AddressManager:
         is ensured to be unique in the database.
 
         :param int length: The number of characters in the returned ID 
-            (default 7).
+        (default 7).
 
         :return: The generated short ID.
         :rtype: str
         """
         while True:
-            if 6 * length % 8 == 0:
-                short_id = secrets.token_urlsafe(6 * length // 8)
-            else:
-                # Complexity of string is non-integer number of bytes
-                # To ensure all `length`-bit strings possible, round up
-                # bytes then truncate result
-                short_id = secrets.token_urlsafe(math.ceil(6 * length / 8))[:length]
+            # Bit encoding of string may be non-integer number of bytes.
+            # To ensure all `length`-character strings possible, round up
+            # bytes then truncate result to correct length
+            short_id = secrets.token_urlsafe(math.ceil(6 * length / 8))[:length]
             if self._urls.find_one({SHORT_ID_IDENTIFIER: short_id}) is None:
                 break
         return short_id

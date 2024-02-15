@@ -6,7 +6,6 @@ from pymongo.collection import Collection
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
-from yocto.lib.utils import _verify_type
 from yocto.lib.exceptions import (
     UsernameInvalidError,
     UserExistsError,
@@ -15,6 +14,7 @@ from yocto.lib.exceptions import (
     PasswordMismatchError
 )
 from yocto.lib.utils import (
+    _verify_type,
     USERNAME_IDENTIFIER,
     PASSWORD_HASH_IDENTIFIER,
     ACCOUNT_CREATION_DATE_IDENTIFIER,
@@ -30,6 +30,17 @@ PASSWORD_MAX_LENGTH = 100
 
 class UserAuthenticator:
     def __init__(self, database):
+        """
+        Class for managing user authentication and credential storage in database.
+
+        Methods in this class allow registration of new users in the database
+        and authentication of existing users with credentials. Passwords are
+        securely hashed and salted using Argon2id. When a user is deleted, it is
+        ensured that all links created by the user are also removed.
+
+        :param database: Database containing the users and urls collections.
+        :type database: pymongo.database.Database
+        """
         self._users: Collection = database.users
         self._urls: Collection = database.urls
 
