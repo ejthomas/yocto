@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block header %}
+    <h2>{% block title %}Login{% endblock title %}</h2>
+{% endblock header %}
+
+{% block content %}
+    <p>
+        Login page
+    </p>
+    <form action = "/login/" method = "post">
+        <p><label for="uname">Username:</label></p>
+        <p><input name = "uname" id="uname" value="{{ form['uname'] }}" required></p>
+        <p><label for="pw">Password:</label></p>
+        <p><input type = "password" name = "pw" value="{{ form['pw'] }}" autocomplete="current-password" required></p>
+        {% if message %}
+            <p><label>{{ message }}</label></p>
+        {% endif %}
+        <p><input type = "submit" value = "Login"></p>
+    </form>
+{% endblock content %}

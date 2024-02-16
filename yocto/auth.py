@@ -110,6 +110,8 @@ class UserAuthenticator:
         :param str password: The password of the new user.
 
         :raises UserExistsError: If the username already exists in the database.
+        :raises UsernameInvalidError: If `username` is not a valid username.
+        :raises PasswordInvalidError: If `password` is not a valid password.
         """
         self.validate_username(username)
         if self._users.find_one({USERNAME_IDENTIFIER: username}) is not None:

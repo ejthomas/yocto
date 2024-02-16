@@ -1,0 +1,12 @@
+<nav>
+    <ul>
+        <li><a href="{{ url_for('pages.index') }}">Home</a></li>
+        {% if session["user"] %}
+            <li><a href="{{ url_for('pages.account') }}">{{ session["user"] }}</a></li>
+            <li><a href="{{ url_for('pages.logout') }}">Logout</a></li>
+        {% else %}
+            <li><a href="{{ url_for('pages.signup') }}">Sign Up</a></li>
+            <li><a href="{{ url_for('pages.login') }}">Login</a></li>
+        {% endif %}
+    </ul>
+</nav>

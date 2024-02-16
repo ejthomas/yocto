@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block header %}
+    <h2>{% block title %}Home{% endblock title %}</h2>
+{% endblock header  %}
+
+{% block content %}
+    {% if disp == "account-delete-success" %}
+        <p>Account deleted successfully.</p>
+    {% endif %}
+    {% if disp == "user-logged-out" %}
+        <p>Log out successful.</p>
+    {% endif %}
+    <p>
+        Welcome to Yocto URL shortener.
+    </p>
+{% endblock content %}

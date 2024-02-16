@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block header %}
+    {% block title %}
+        Delete account
+    {% endblock title %}
+{% endblock header %}
+
+{% block content %}
+    <p>Are you sure you would like to delete your account?</p>
+    <p><a href="{{ url_for('pages.delete_confirmed') }}">Yes</a></p>
+    <p><a href="{{ url_for('pages.account') }}">No</a></p>
+{% endblock content %}

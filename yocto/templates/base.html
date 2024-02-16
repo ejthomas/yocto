@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Yocto - {% block title %}{% endblock title %}</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    </head>
+    <body>
+        <h1>Yocto</h1>
+        {% include "_navigation.html" %}
+        <section>
+            <header>
+                {% block header %}{% endblock header %}
+            </header>
+            <main>
+                {% block content %}<p>No content.</p>{% endblock content %}
+            </main>
+        </section>
+    </body>
+</html>

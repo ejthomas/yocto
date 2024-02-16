@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block header %}
+    <h2>{% block title %}Sign Up{% endblock title %}</h2>
+{% endblock header  %}
+
+{% block content %}
+    <p>
+        User registration page
+    </p>
+    <form action = "/signup" method = "post">
+        <p><label for="uname">Username:</label></p>
+        <p><input name = "uname" id="uname" value="{{ form['uname'] }}" required></p>
+        <p><label for="pw">Password:</label></p>
+        <p><input type = "password" name = "pw" value="{{ form['pw'] }}" autocomplete="new-password" required></p>
+        <p><label for="rep_pw">Repeat Password:</label></p>
+        <p><input type = "password" name = "rep_pw" value="{{ form['rep_pw'] }}" autocomplete="new-password" required></p>
+        {% if message %}
+          <label>{{ message }}</label>
+        {% endif %}
+        <p><input type = "submit" value = "Sign Up"></p>
+    </form>
+{% endblock content %}
