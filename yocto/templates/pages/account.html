@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block header %}
+    <h2>{% block title %}Account{% endblock title %}</h2>
+{% endblock header %}
+
+{% block content %}
+    <p>
+        {{ session["user"] }}
+    </p>
+    <p><a href="{{ url_for('pages.delete') }}">Delete account</a></p>
+{% endblock content %}

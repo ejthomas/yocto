@@ -2,13 +2,13 @@
 
 {% block header %}
     <h2>{% block title %}Login{% endblock title %}</h2>
-{% endblock header  %}
+{% endblock header %}
 
 {% block content %}
     <p>
         Login page
     </p>
-    <form action = "/login" method = "post">
+    <form action = "/login/" method = "post">
         <p><label for="uname">Username:</label></p>
         <p><input name = "uname" id="uname" value="{{ form['uname'] }}" required></p>
         <p><label for="pw">Password:</label></p>
