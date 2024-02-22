@@ -11,8 +11,7 @@ from yocto.lib.utils import LONG_URL_IDENTIFIER, SHORT_ID_IDENTIFIER
 
 @pytest.fixture()
 def app():
-    app = create_app()
-    app.config.update({"TESTING": True})
+    app = create_app({"TESTING": True, "DATABASE": "tests"})
     with app.app_context():
         init_db()  # work with a fresh database
     yield app

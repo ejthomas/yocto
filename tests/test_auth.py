@@ -2,7 +2,7 @@ from datetime import datetime
 import pytest
 
 from pymongo.collection import Collection
-from pytest_mongo import factories
+from pymongo import MongoClient
 from argon2 import PasswordHasher
 
 from yocto.auth import (
@@ -20,10 +20,12 @@ from yocto.lib.utils import (
     CREATOR_USERNAME_IDENTIFIER,
 )
 
-# Requires mongod running and available at localhost:27017
-# E.g. via Docker container
-mongo_noproc = factories.mongo_noproc(host="localhost", port=27017)
-mongo_client = factories.mongodb("mongo_noproc")
+@pytest.fixture()
+def mongo_client():
+    client = MongoClient(host="localhost", port=27017)
+    client.tests.drop_collection("users")
+    client.tests.drop_collection("urls")
+    return client
 
 class TestUserAuthenticator:
     def test_validate_username(self):

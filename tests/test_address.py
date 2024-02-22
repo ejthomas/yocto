@@ -4,7 +4,7 @@ import unicodedata
 
 from argon2 import PasswordHasher
 from pymongo.collection import Collection
-from pytest_mongo import factories
+from pymongo import MongoClient
 
 from yocto.address import AddressManager
 from yocto.auth import UserAuthenticator
@@ -24,8 +24,12 @@ from yocto.lib.utils import (
     ACCOUNT_CREATION_DATE_IDENTIFIER,
 )
 
-mongo_noproc = factories.mongo_noproc(host="localhost", port=27017)
-mongo_client = factories.mongodb("mongo_noproc")
+@pytest.fixture()
+def mongo_client():
+    client = MongoClient(host="localhost", port=27017)
+    client.tests.drop_collection("users")
+    client.tests.drop_collection("urls")
+    return client
 
 @pytest.fixture
 def mongo_client_with_data(mongo_client):
