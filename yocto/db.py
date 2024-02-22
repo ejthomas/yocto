@@ -16,10 +16,12 @@ def get_db():
     """
     if "db" not in g:
         client = MongoClient(host="localhost", port=27017)
-        if current_app.config["TESTING"]:
-            g.db = client.get_database("tests")
-        else:
-            g.db = client.get_database("yocto")
+        # if current_app.testing:
+        #     g.db = client.get_database("tests")
+        # else:
+        #     g.db = client.get_database("yocto")
+        g.db = client.get_database(current_app.config['DATABASE'])
+    print(g.db.name)
     return g.db
 
 def init_db():

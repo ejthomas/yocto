@@ -127,7 +127,6 @@ class AddressManager:
             }
         )
         
-
     def lookup_short_id(self, short_id):
         """
         Retrieve the long URL corresponding to the provided short ID.
@@ -172,3 +171,40 @@ class AddressManager:
         result = self._urls.delete_one({SHORT_ID_IDENTIFIER: short_id})
         if result.deleted_count == 0:
             raise UrlNotFoundError
+        
+    @staticmethod
+    def compose_shortened_url(domain, short_id):
+        """
+        Construct a complete shortened URL which the user can visit to be 
+        redirected to their chosen web page.
+
+        :param str domain: The domain where the application is hosted.
+        :param str short_id: The short ID to use for the shortened address.
+
+        :return: A shortened URL which can be visited in the browser.
+        :rtype: str
+        """
+        if domain.endswith("/"):
+            return domain + short_id
+        else:
+            return "/".join([domain, short_id])
+        
+    def lookup_user_urls(self, username):
+        """
+        Find all URLs belonging to a specific user.
+
+        :param str username: The username associated with the returned link
+        information.
+
+        :raises UserNotFoundError: If the username is not present in the users
+        collection.
+
+        :return: All URLs created by the specified user, as a sequence of 
+        dictionaries.
+        :rtype: list[dict]
+        """
+        if self._users.find_one({USERNAME_IDENTIFIER: username}) is None:
+            raise UserNotFoundError
+        cursor = self._urls.find({CREATOR_USERNAME_IDENTIFIER: username})
+        return [link for link in cursor]
+

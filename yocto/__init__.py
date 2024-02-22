@@ -7,6 +7,8 @@ def create_app(test_config=None):
     # Default config
     app.config.from_mapping(
         SECRET_KEY='dev',
+        TESTING=False,
+        DATABASE="yocto",
     )
 
     if test_config is None:

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block header %}
+  {% block title %}
+    <h2>Shorten a URL</h2>
+  {% endblock title %}
+{% endblock header %}
+
+{% block content %}
+  <p>Enter an address below to get a shortened version.</p>
+  <form action="/create/" method="post">
+    <p><input name="url" id="url" value="{{ form['url'] }}" required></p>
+    <p><input type="submit" value="Shorten"></p>
+  </form>
+  {% if short_url %}
+    <p>{{ short_url }}</p>
+  {% endif %}
+  {% if message %}
+    <p>{{ message }}</p>
+  {% endif %}
+  <p></p>
+{% endblock content %}

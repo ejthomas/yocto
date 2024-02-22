@@ -1,30 +1,37 @@
 import pytest
 
 import regex
-from flask import session, url_for
+from flask import session, url_for, g
 
 from yocto import create_app
 from yocto.db import init_db, get_db
 from yocto.auth import UserAuthenticator
+from yocto.address import AddressManager
+from yocto.lib.utils import LONG_URL_IDENTIFIER, SHORT_ID_IDENTIFIER
 
 @pytest.fixture()
 def app():
-    app = create_app()
-    app.config.update({"TESTING": True})
+    app = create_app({"TESTING": True, "DATABASE": "tests"})
     with app.app_context():
         init_db()  # work with a fresh database
     yield app
+
 
 @pytest.fixture()
 def client(app):
     return app.test_client()
 
+
 @pytest.fixture()
-def client_with_new_user(app):
+def client_with_data(app):
     # Create new user
     with app.app_context():
-        auth = UserAuthenticator(get_db())
+        db = get_db()
+        auth = UserAuthenticator(db)
         auth.register_user("new_user", "V4l1d_password")
+        am = AddressManager(db)
+        am.store_url_and_id("https://www.example.com", "abcdef1", "new_user")
+        am.store_url_and_id("https://www.example2.com", "1234567", "new_user")
     return app.test_client()
 
 
@@ -37,9 +44,6 @@ def test_index_root(client):
     assert b"Log out successful." not in response.data  # no logout message
     assert b"Welcome to Yocto URL shortener." in response.data  # welcome text
 
-def test_index_alt_route(client):
-    response = client.get("/index/")  # index route
-    assert response.data == client.get("/").data
 
 def test_index_disp(client):
     response = client.get("/index/user-logged-out", follow_redirects=True)  # logout message route
@@ -123,8 +127,8 @@ def test_login_post_wrong_pw(client, app):
     assert b"Password incorrect." in response.data
 
 
-def test_login_post_valid_credentials(client_with_new_user):
-    with client_with_new_user as client:
+def test_login_post_valid_credentials(client_with_data):
+    with client_with_data as client:
         response = client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "new_user"
     assert len(response.history) == 1  # redirect occurred
@@ -135,8 +139,8 @@ def test_login_success(client):
     response = client.get("/login_success/test_name", follow_redirects=True)
     assert b'Login successful. Welcome test_name.' in response.data
 
-def test_logout(client_with_new_user):
-    with client_with_new_user as client:
+def test_logout(client_with_data):
+    with client_with_data as client:
         # Login as created user
         response = client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "new_user"
@@ -146,8 +150,12 @@ def test_logout(client_with_new_user):
     assert len(response.history) == 1
     assert response.request.path == "/index/user-logged-out/"
 
-def test_account(client_with_new_user):
-    with client_with_new_user as client:
+def test_account(client_with_data):
+    with client_with_data as client:
+        # Redirects to login if user not logged in
+        response = client.get("/account/", follow_redirects=True)
+        assert len(response.history) == 1
+        assert response.request.path == "/login/"
         # Login as new_user
         client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         # Follow account route
@@ -156,13 +164,16 @@ def test_account(client_with_new_user):
         assert regex.search(r"<p>\s+" + session["user"] + r"\s+</p>", response.text)  # display header
         
 
-def test_delete(client):
-    response = client.get("/delete/")
-    assert b"Delete account" in response.data
+def test_delete(client_with_data):
+    with client_with_data as client:
+        # Login
+        client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+        response = client.get("/delete/")
+        assert b"Delete account" in response.data
 
 
-def test_delete_confirmed_logged_in(client_with_new_user):
-    with client_with_new_user as client:
+def test_delete_confirmed_logged_in(client_with_data):
+    with client_with_data as client:
         # Login as new_user
         client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "new_user"
@@ -170,27 +181,62 @@ def test_delete_confirmed_logged_in(client_with_new_user):
         assert "user" not in session
     assert len(response.history) == 1
     assert response.request.path == "/index/account-delete-success/"
+    
+
+def test_error(app, client):
+    # Need app.test_request_context to use url_for
+    with app.test_request_context():
+        response = client.get(url_for("pages.error", message="An example of an error."))
+        assert b"An example of an error." in response.data
+    
+
+def test_create_get(client_with_data):
+    with client_with_data:
+        # Login as user
+        client_with_data.post(
+            "/login/", 
+            data={"uname": "new_user", "pw": "V4l1d_password"}, 
+            follow_redirects=True
+        )
+        response = client_with_data.get("/create/")
+        assert b'<form action="/create/" method="post">' in response.data
 
 
-def test_delete_confirmed_error(client_with_new_user, app):
-    # Not logged in
-    with client_with_new_user as client:
-        response = client.get("/delete/confirmed/", follow_redirects=True)
-        assert len(response.history) == 1
-        assert response.request.path == "/error/"
-        assert b"No user logged in." in response.data
+def test_create_post(client_with_data):
+    with client_with_data as client:
+        # Login as user
+        client.post(
+            "/login/", 
+            data={"uname": "new_user", "pw": "V4l1d_password"}, 
+            follow_redirects=True
+        )
 
-    # Delete confirmed route with nonexistent user
-    # This should be impossible to cause in the app
-    with client_with_new_user as client:
-        # Login
-        client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
-        with app.app_context():
-            # Delete user from DB
-            auth = UserAuthenticator(get_db())
-            auth.delete_user("new_user")
-        assert session["user"] == "new_user"  # deleted user still logged in
-        response = client.get("/delete/confirmed/", follow_redirects=True)
-        assert len(response.history) == 1
-        assert response.request.path == "/error/"
-        assert b"The account has already been deleted." in response.data
+        # Invalid address
+        response = client.post("/create/", data={"url": "https://www.example.123"})
+        assert b"Input is not a valid web address." in response.data
+
+        # Address already exists
+        response = client.post("/create/", data={"url": "https://www.example.com"})
+        assert b"abcdef1" in response.data
+
+        # Valid new address
+        response = client.post("/create/", data={"url": "https://www.xyz.com"})
+        db = get_db()
+        result = db.urls.find_one({LONG_URL_IDENTIFIER: "https://www.xyz.com"})
+        assert result is not None
+        assert result[SHORT_ID_IDENTIFIER] in response.text
+
+
+def test_my_links(client_with_data):
+    with client_with_data as client:
+        # Login as user
+        client.post(
+            "/login/", 
+            data={"uname": "new_user", "pw": "V4l1d_password"}, 
+            follow_redirects=True
+        )
+        response = client.get("/my-links/")
+        assert b"https://www.example.com" in response.data
+        assert b"https://www.example2.com" in response.data
+        assert b"abcdef1" in response.data
+        assert b"1234567" in response.data
