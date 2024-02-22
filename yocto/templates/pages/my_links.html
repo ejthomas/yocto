@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block header %}
+  {% block title %}
+    <h2>My Links</h2>
+  {% endblock title %}
+{% endblock header %}
+
+{% block content %}
+  {% for link in links %}
+    <p><a href="{{ link['short'] }}">{{ link["short"] }}</a><br>{{ link["long"] }}</p>
+  {% endfor %}
+{% endblock content %}
