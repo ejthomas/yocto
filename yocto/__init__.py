@@ -25,7 +25,8 @@ def create_app(test_config=None):
         pass
 
     # Import pages blueprint
-    from yocto import pages
+    from yocto import pages, short
+    app.register_blueprint(short.bp)
     app.register_blueprint(pages.bp)
 
     # Import database functions and initialize

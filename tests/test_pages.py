@@ -36,7 +36,7 @@ def client_with_data(app):
 
 
 def test_index_root(client):
-    response = client.get("/")  # root
+    response = client.get("/pages/")  # root
     assert b"<title>Yocto - Home</title>" in response.data  # inherits from base
     assert b"<nav>" in response.data  # navigation bar displaying
     assert regex.search(r"<header>\s+<h2>Home</h2>\s+</header>", response.text)  # display header
@@ -46,27 +46,27 @@ def test_index_root(client):
 
 
 def test_index_disp(client):
-    response = client.get("/index/user-logged-out", follow_redirects=True)  # logout message route
+    response = client.get("/pages/index/user-logged-out", follow_redirects=True)  # logout message route
     assert b"Account deleted successfully." not in response.data  # no deletion message
     assert b"Log out successful." in response.data  # display logout message
     assert b"Welcome to Yocto URL shortener." in response.data  # welcome text
 
-    response = client.get("/index/account-delete-success", follow_redirects=True)  # account deleted message route
+    response = client.get("/pages/index/account-delete-success", follow_redirects=True)  # account deleted message route
     assert b"Account deleted successfully." in response.data  # show deletion message
     assert b"Log out successful." not in response.data  # no logout message
     assert b"Welcome to Yocto URL shortener." in response.data  # welcome text
 
 
 def test_signup_get(client):
-    response = client.get("/signup/")
-    assert b'<form action = "/signup" method = "post">' in response.data  # display the form
+    response = client.get("/pages/signup/")
+    assert b'<form action = "/pages/signup" method = "post">' in response.data  # display the form
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?""[^>]*>', response.text)  # uname value field empty
     assert regex.search(r'<input[^>]*name\s?\=\s?"pw"[^>]*value\s?\=\s?""[^>]*>', response.text)  # pw value field empty
     assert regex.search(r'<input[^>]*name\s?\=\s?"rep_pw"[^>]*value\s?\=\s?""[^>]*>', response.text)  # rep_pw value field empty
 
 
 def test_signup_post_non_matching_pw(client):
-    response = client.post("/signup/", data={"uname": "test_user", "pw": "V4l1d_password", "rep_pw": "other_V4l1d_password"})
+    response = client.post("/pages/signup/", data={"uname": "test_user", "pw": "V4l1d_password", "rep_pw": "other_V4l1d_password"})
     assert b"Passwords do not match." in response.data
     # Keep form fill values
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?"test_user"[^>]*>', response.text)  # uname value
@@ -74,7 +74,7 @@ def test_signup_post_non_matching_pw(client):
     assert regex.search(r'<input[^>]*name\s?\=\s?"rep_pw"[^>]*value\s?\=\s?"other_V4l1d_password"[^>]*>', response.text)  # rep_pw value
 
 def test_signup_post_invalid_uname(client):
-    response = client.post("/signup/", data={"uname": "", "pw": "V4l1d_password", "rep_pw": "V4l1d_password"})
+    response = client.post("/pages/signup/", data={"uname": "", "pw": "V4l1d_password", "rep_pw": "V4l1d_password"})
     assert b"Username not valid." in response.data
     # Keep form fill values
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?""[^>]*>', response.text)  # uname value
@@ -83,7 +83,7 @@ def test_signup_post_invalid_uname(client):
 
 
 def test_signup_post_invalid_pw(client):
-    response = client.post("/signup/", data={"uname": "test_user", "pw": "invalidpassword", "rep_pw": "invalidpassword"})
+    response = client.post("/pages/signup/", data={"uname": "test_user", "pw": "invalidpassword", "rep_pw": "invalidpassword"})
     assert b"Password not valid." in response.data
     # Keep form fill values
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?"test_user"[^>]*>', response.text)  # uname value
@@ -93,15 +93,15 @@ def test_signup_post_invalid_pw(client):
 
 def test_signup_post_valid(client):
     with client:
-        response = client.post("/signup/", data={"uname": "test_user", "pw": "V4l1d_password", "rep_pw": "V4l1d_password"}, follow_redirects=True)
+        response = client.post("/pages/signup/", data={"uname": "test_user", "pw": "V4l1d_password", "rep_pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "test_user"
     assert len(response.history) == 1
-    assert response.request.path == "/login_success/test_user/"
+    assert response.request.path == "/pages/login_success/test_user/"
 
 
 def test_login_get(client):
-    response = client.get("/login/")
-    assert b'<form action = "/login/" method = "post">' in response.data # display form
+    response = client.get("/pages/login/")
+    assert b'<form action = "/pages/login/" method = "post">' in response.data # display form
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?""[^>]*>', response.text)  # uname value field empty
     assert regex.search(r'<input[^>]*name\s?\=\s?"pw"[^>]*value\s?\=\s?""[^>]*>', response.text)  # pw value field empty
     assert b"The requested user was not found." not in response.data
@@ -109,8 +109,8 @@ def test_login_get(client):
 
 
 def test_login_post_unknown_user(client):
-    response = client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"})
-    assert b'<form action = "/login/" method = "post">' in response.data # display form
+    response = client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"})
+    assert b'<form action = "/pages/login/" method = "post">' in response.data # display form
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?"new_user"[^>]*>', response.text)  # uname value field kept
     assert regex.search(r'<input[^>]*name\s?\=\s?"pw"[^>]*value\s?\=\s?"V4l1d_password"[^>]*>', response.text)  # pw value field kept
     assert b"The requested user was not found." in response.data
@@ -120,8 +120,8 @@ def test_login_post_wrong_pw(client, app):
     with app.app_context():
         auth = UserAuthenticator(get_db())
         auth.register_user("new_user", "V4l1d_password")
-    response = client.post("/login/", data={"uname": "new_user", "pw": "other_V4l1d_password"})
-    assert b'<form action = "/login/" method = "post">' in response.data # display form
+    response = client.post("/pages/login/", data={"uname": "new_user", "pw": "other_V4l1d_password"})
+    assert b'<form action = "/pages/login/" method = "post">' in response.data # display form
     assert regex.search(r'<input[^>]*name\s?\=\s?"uname"[^>]*value\s?\=\s?"new_user"[^>]*>', response.text)  # uname value field kept
     assert regex.search(r'<input[^>]*name\s?\=\s?"pw"[^>]*value\s?\=\s?"other_V4l1d_password"[^>]*>', response.text)  # pw value field kept
     assert b"Password incorrect." in response.data
@@ -129,37 +129,37 @@ def test_login_post_wrong_pw(client, app):
 
 def test_login_post_valid_credentials(client_with_data):
     with client_with_data as client:
-        response = client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+        response = client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "new_user"
     assert len(response.history) == 1  # redirect occurred
-    assert response.request.path == "/login_success/new_user/"  # correct destination
+    assert response.request.path == "/pages/login_success/new_user/"  # correct destination
 
 
 def test_login_success(client):
-    response = client.get("/login_success/test_name", follow_redirects=True)
+    response = client.get("/pages/login_success/test_name", follow_redirects=True)
     assert b'Login successful. Welcome test_name.' in response.data
 
 def test_logout(client_with_data):
     with client_with_data as client:
         # Login as created user
-        response = client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+        response = client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "new_user"
         # Log out
-        response = client.get("/logout/", follow_redirects=True)
+        response = client.get("/pages/logout/", follow_redirects=True)
         assert "user" not in session
     assert len(response.history) == 1
-    assert response.request.path == "/index/user-logged-out/"
+    assert response.request.path == "/pages/index/user-logged-out/"
 
 def test_account(client_with_data):
     with client_with_data as client:
         # Redirects to login if user not logged in
-        response = client.get("/account/", follow_redirects=True)
+        response = client.get("/pages/account/", follow_redirects=True)
         assert len(response.history) == 1
-        assert response.request.path == "/login/"
+        assert response.request.path == "/pages/login/"
         # Login as new_user
-        client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+        client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         # Follow account route
-        response = client.get("/account/")
+        response = client.get("/pages/account/")
         assert regex.search(r"<header>\s+<h2>Account</h2>\s+</header>", response.text)  # display header
         assert regex.search(r"<p>\s+" + session["user"] + r"\s+</p>", response.text)  # display header
         
@@ -167,20 +167,20 @@ def test_account(client_with_data):
 def test_delete(client_with_data):
     with client_with_data as client:
         # Login
-        client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
-        response = client.get("/delete/")
+        client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+        response = client.get("/pages/delete/")
         assert b"Delete account" in response.data
 
 
 def test_delete_confirmed_logged_in(client_with_data):
     with client_with_data as client:
         # Login as new_user
-        client.post("/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+        client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
         assert session["user"] == "new_user"
-        response = client.get("/delete/confirmed/", follow_redirects=True)
+        response = client.get("/pages/delete/confirmed/", follow_redirects=True)
         assert "user" not in session
     assert len(response.history) == 1
-    assert response.request.path == "/index/account-delete-success/"
+    assert response.request.path == "/pages/index/account-delete-success/"
     
 
 def test_error(app, client):
@@ -194,33 +194,33 @@ def test_create_get(client_with_data):
     with client_with_data:
         # Login as user
         client_with_data.post(
-            "/login/", 
+            "/pages/login/", 
             data={"uname": "new_user", "pw": "V4l1d_password"}, 
             follow_redirects=True
         )
-        response = client_with_data.get("/create/")
-        assert b'<form action="/create/" method="post">' in response.data
+        response = client_with_data.get("/pages/create/")
+        assert b'<form action="/pages/create/" method="post">' in response.data
 
 
 def test_create_post(client_with_data):
     with client_with_data as client:
         # Login as user
         client.post(
-            "/login/", 
+            "/pages/login/", 
             data={"uname": "new_user", "pw": "V4l1d_password"}, 
             follow_redirects=True
         )
 
         # Invalid address
-        response = client.post("/create/", data={"url": "https://www.example.123"})
+        response = client.post("/pages/create/", data={"url": "https://www.example.123"})
         assert b"Input is not a valid web address." in response.data
 
         # Address already exists
-        response = client.post("/create/", data={"url": "https://www.example.com"})
+        response = client.post("/pages/create/", data={"url": "https://www.example.com"})
         assert b"abcdef1" in response.data
 
         # Valid new address
-        response = client.post("/create/", data={"url": "https://www.xyz.com"})
+        response = client.post("/pages/create/", data={"url": "https://www.xyz.com"})
         db = get_db()
         result = db.urls.find_one({LONG_URL_IDENTIFIER: "https://www.xyz.com"})
         assert result is not None
@@ -231,11 +231,11 @@ def test_my_links(client_with_data):
     with client_with_data as client:
         # Login as user
         client.post(
-            "/login/", 
+            "/pages/login/", 
             data={"uname": "new_user", "pw": "V4l1d_password"}, 
             follow_redirects=True
         )
-        response = client.get("/my-links/")
+        response = client.get("/pages/my-links/")
         assert b"https://www.example.com" in response.data
         assert b"https://www.example2.com" in response.data
         assert b"abcdef1" in response.data

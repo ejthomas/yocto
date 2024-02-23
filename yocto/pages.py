@@ -23,7 +23,7 @@ from yocto.lib.exceptions import (
 )
 from yocto.lib.utils import USERNAME_IDENTIFIER, LONG_URL_IDENTIFIER, SHORT_ID_IDENTIFIER
 
-bp = Blueprint("pages", __name__)
+bp = Blueprint("pages", __name__, url_prefix="/pages")
 
 @bp.before_app_request
 def load_logged_in_user():
