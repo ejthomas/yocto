@@ -8,7 +8,7 @@
 
 {% block content %}
   <p>Enter an address below to get a shortened version.</p>
-  <form action="/create/" method="post">
+  <form action="/pages/create/" method="post">
     <p><input name="url" id="url" value="{{ form['url'] }}" required></p>
     <p><input type="submit" value="Shorten"></p>
   </form>
