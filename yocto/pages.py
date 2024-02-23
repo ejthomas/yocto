@@ -170,14 +170,14 @@ def create():
             return render_template(
                 "pages/create.html",
                 form={"url": ""},
-                short_url=am.compose_shortened_url(url_for("pages.index", _external=True), short_id),
+                short_url=am.compose_shortened_url(get_root_url(), short_id),
                 message=None,
             )
         # UserNotFoundError should be impossible due to login_required decorator
         return render_template(
             "pages/create.html",
             form={"url": ""},
-            short_url=am.compose_shortened_url(url_for("pages.index", _external=True), short_id),
+            short_url=am.compose_shortened_url(get_root_url(), short_id),
             message=None,
         )
     else:
@@ -199,11 +199,22 @@ def my_links():
             {
                 "long": address[LONG_URL_IDENTIFIER], 
                 "short": am.compose_shortened_url(
-                    url_for("pages.index", _external=True), 
+                    get_root_url(), 
                     address[SHORT_ID_IDENTIFIER]
                 ) 
             }
             for address in addresses
         ]
     )
-    
+
+def get_root_url():
+    """
+    Retrieve the URL corresponding to the root on the server.
+
+    This is the address of the `index` endpoint for the blueprint with
+    no URL prefix, i.e. "<domain>/"
+
+    :return: The root URL.
+    :rtype: str
+    """
+    return url_for("short.index", _external=True)

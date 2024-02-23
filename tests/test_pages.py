@@ -1,7 +1,7 @@
 import pytest
 
 import regex
-from flask import session, url_for, g
+from flask import session, url_for, g, current_app
 
 from yocto import create_app
 from yocto.db import init_db, get_db
@@ -202,7 +202,7 @@ def test_create_get(client_with_data):
         assert b'<form action="/pages/create/" method="post">' in response.data
 
 
-def test_create_post(client_with_data):
+def test_create_post(client_with_data, app):
     with client_with_data as client:
         # Login as user
         client.post(
@@ -225,9 +225,21 @@ def test_create_post(client_with_data):
         result = db.urls.find_one({LONG_URL_IDENTIFIER: "https://www.xyz.com"})
         assert result is not None
         assert result[SHORT_ID_IDENTIFIER] in response.text
+        # Check that URL prefix correct for shortened links
+        with app.test_request_context():
+            pages_root_url = url_for("pages.index")
+            root_url = url_for("short.index")
+            assert AddressManager.compose_shortened_url(
+                pages_root_url, 
+                result[SHORT_ID_IDENTIFIER]
+            ) not in response.text
+            assert AddressManager.compose_shortened_url(
+                root_url, 
+                result[SHORT_ID_IDENTIFIER]
+            ) in response.text
 
 
-def test_my_links(client_with_data):
+def test_my_links(client_with_data, app):
     with client_with_data as client:
         # Login as user
         client.post(
@@ -240,3 +252,10 @@ def test_my_links(client_with_data):
         assert b"https://www.example2.com" in response.data
         assert b"abcdef1" in response.data
         assert b"1234567" in response.data
+        # Check that URL prefix correct for shortened links
+        with app.test_request_context():
+            pages_root_url = url_for("pages.index")
+            root_url = url_for("short.index")
+            assert AddressManager.compose_shortened_url(pages_root_url, "abcdef1") not in response.text
+            assert AddressManager.compose_shortened_url(root_url, "abcdef1") in response.text
+
