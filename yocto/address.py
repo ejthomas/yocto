@@ -18,6 +18,7 @@ from yocto.lib.utils import (
     SHORT_ID_IDENTIFIER,
     URL_CREATION_DATE_IDENTIFIER,
     CREATOR_USERNAME_IDENTIFIER,
+    VISITS_COUNT_IDENTIFIER,
     USERNAME_IDENTIFIER,
 )
 
@@ -124,14 +125,17 @@ class AddressManager:
                 SHORT_ID_IDENTIFIER: short_id,
                 URL_CREATION_DATE_IDENTIFIER: datetime.now(),
                 CREATOR_USERNAME_IDENTIFIER: creator_username,
+                VISITS_COUNT_IDENTIFIER: 0,
             }
         )
         
-    def lookup_short_id(self, short_id):
+    def lookup_short_id(self, short_id, count_visit=False):
         """
         Retrieve the long URL corresponding to the provided short ID.
 
         :param str short_id: The shortened URL to look up in the database.
+        :param bool count_visit: If `True`, the visit count for the ID provided is
+        incremented.
 
         :raises UrlNotFoundError: If the URL to look up is not in the database.
 
@@ -139,7 +143,10 @@ class AddressManager:
         :rtype: str
         """
         _verify_type(short_id, str)
-        result = self._urls.find_one({SHORT_ID_IDENTIFIER: short_id})
+        if count_visit:
+            result = self._urls.find_one_and_update({SHORT_ID_IDENTIFIER: short_id}, {"$inc": {VISITS_COUNT_IDENTIFIER: 1}})
+        else:
+            result = self._urls.find_one({SHORT_ID_IDENTIFIER: short_id})
         if result is None:
             raise UrlNotFoundError
         return result[LONG_URL_IDENTIFIER]
