@@ -2,12 +2,18 @@ import pytest
 
 import regex
 from flask import session, url_for, g, current_app
+from bson.objectid import ObjectId
 
 from yocto import create_app
 from yocto.db import init_db, get_db
 from yocto.auth import UserAuthenticator
 from yocto.address import AddressManager
-from yocto.lib.utils import LONG_URL_IDENTIFIER, SHORT_ID_IDENTIFIER
+from yocto.lib.utils import (
+    USER_ID_IDENTIFIER,
+    USERNAME_IDENTIFIER, 
+    LONG_URL_IDENTIFIER, 
+    SHORT_ID_IDENTIFIER,
+)
 
 @pytest.fixture()
 def app():
@@ -28,10 +34,10 @@ def client_with_data(app):
     with app.app_context():
         db = get_db()
         auth = UserAuthenticator(db)
-        auth.register_user("new_user", "V4l1d_password")
+        user_id = auth.register_user("new_user", "V4l1d_password")
         am = AddressManager(db)
-        am.store_url_and_id("https://www.example.com", "abcdef1", "new_user")
-        am.store_url_and_id("https://www.example2.com", "1234567", "new_user")
+        am.store_url_and_id("https://www.example.com", "abcdef1", user_id)
+        am.store_url_and_id("https://www.example2.com", "1234567", user_id)
     return app.test_client()
 
 
@@ -91,10 +97,13 @@ def test_signup_post_invalid_pw(client):
     assert regex.search(r'<input[^>]*name\s?\=\s?"rep_pw"[^>]*value\s?\=\s?"invalidpassword"[^>]*>', response.text)  # rep_pw value
 
 
-def test_signup_post_valid(client):
+def test_signup_post_valid(client, app):
     with client:
         response = client.post("/pages/signup/", data={"uname": "test_user", "pw": "V4l1d_password", "rep_pw": "V4l1d_password"}, follow_redirects=True)
-        assert session["user"] == "test_user"
+        with app.app_context():
+            db = get_db()
+            user_id = db.users.find_one({USERNAME_IDENTIFIER: "test_user"})[USER_ID_IDENTIFIER]
+        assert session["user"] == str(user_id)
     assert len(response.history) == 1
     assert response.request.path == "/pages/login_success/test_user/"
 
@@ -127,10 +136,13 @@ def test_login_post_wrong_pw(client, app):
     assert b"Password incorrect." in response.data
 
 
-def test_login_post_valid_credentials(client_with_data):
+def test_login_post_valid_credentials(client_with_data, app):
     with client_with_data as client:
         response = client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
-        assert session["user"] == "new_user"
+        with app.app_context():
+            db = get_db()
+            user_id = db.users.find_one({USERNAME_IDENTIFIER: "new_user"})[USER_ID_IDENTIFIER]
+        assert session["user"] == str(user_id)
     assert len(response.history) == 1  # redirect occurred
     assert response.request.path == "/pages/login_success/new_user/"  # correct destination
 
@@ -143,7 +155,7 @@ def test_logout(client_with_data):
     with client_with_data as client:
         # Login as created user
         response = client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
-        assert session["user"] == "new_user"
+        assert "user" in session
         # Log out
         response = client.get("/pages/logout/", follow_redirects=True)
         assert "user" not in session
@@ -176,7 +188,7 @@ def test_delete_confirmed_logged_in(client_with_data):
     with client_with_data as client:
         # Login as new_user
         client.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
-        assert session["user"] == "new_user"
+        assert "user" in session
         response = client.get("/pages/delete/confirmed/", follow_redirects=True)
         assert "user" not in session
     assert len(response.history) == 1

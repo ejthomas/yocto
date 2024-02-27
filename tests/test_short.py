@@ -31,10 +31,10 @@ def client_with_data(app):
     with app.app_context():
         db = get_db()
         auth = UserAuthenticator(db)
-        auth.register_user("new_user", "V4l1d_password")
+        user_id = auth.register_user("new_user", "V4l1d_password")
         am = AddressManager(db)
-        am.store_url_and_id("https://www.example.com", "abcdef1", "new_user")
-        am.store_url_and_id("https://www.example2.com", "1234567", "new_user")
+        am.store_url_and_id("https://www.example.com", "abcdef1", user_id)
+        am.store_url_and_id("https://www.example2.com", "1234567", user_id)
     return app.test_client()
 
 

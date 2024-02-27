@@ -3,6 +3,7 @@ import regex
 import unicodedata
 
 from pymongo.collection import Collection
+from bson.objectid import ObjectId
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -15,10 +16,11 @@ from yocto.lib.exceptions import (
 )
 from yocto.lib.utils import (
     _verify_type,
+    USER_ID_IDENTIFIER,
     USERNAME_IDENTIFIER,
     PASSWORD_HASH_IDENTIFIER,
     ACCOUNT_CREATION_DATE_IDENTIFIER,
-    CREATOR_USERNAME_IDENTIFIER,
+    CREATOR_ID_IDENTIFIER,
 )
 
 ph = PasswordHasher()
@@ -112,18 +114,22 @@ class UserAuthenticator:
         :raises UserExistsError: If the username already exists in the database.
         :raises UsernameInvalidError: If `username` is not a valid username.
         :raises PasswordInvalidError: If `password` is not a valid password.
+
+        :return: The immutable ID of the created user
+        :rtype: bson.objectid.ObjectId
         """
         self.validate_username(username)
         if self._users.find_one({USERNAME_IDENTIFIER: username}) is not None:
             raise UserExistsError
         self.validate_password(password)
-        self._users.insert_one(
+        result = self._users.insert_one(
             {
                 USERNAME_IDENTIFIER: username,
                 PASSWORD_HASH_IDENTIFIER: ph.hash(unicodedata.normalize("NFKC", password)),
                 ACCOUNT_CREATION_DATE_IDENTIFIER: datetime.now(),
             }
         )
+        return result.inserted_id
 
     def authenticate_user(self, username, password):
         """
@@ -135,8 +141,8 @@ class UserAuthenticator:
         :raises UserNotFoundError: If the username is not in the database.
         :raises PasswordMismatchError: If the user's password is not correct.
 
-        :return: True if password is correct, otherwise raises.
-        :rtype: bool
+        :return: User ID if password is correct, otherwise raises.
+        :rtype: bson.objectid.ObjectId
         """
         _verify_type(username, str)
         _verify_type(password, str)
@@ -144,27 +150,28 @@ class UserAuthenticator:
         if user_record is None:
             raise UserNotFoundError
         try:
-            return ph.verify(
+            ph.verify(
                 user_record[PASSWORD_HASH_IDENTIFIER],
                 unicodedata.normalize("NFKC", password)
             )
+            return user_record[USER_ID_IDENTIFIER]
         except VerifyMismatchError:
             raise PasswordMismatchError
 
-    def delete_user(self, username):
+    def delete_user(self, user_id):
         """
         Delete a user account from the database.
 
-        :param str username: The username of the account to delete.
+        :param bson.objectid.ObjectId user_id: The user ID of the account to delete.
 
-        :raises UserNotFoundError: If `username` is not a username in the 
-            users database collection.
+        :raises UserNotFoundError: If `user_id` is not the ID of a user in the
+        users database collection.
         """
-        _verify_type(username, str)
+        _verify_type(user_id, ObjectId)
         # Delete user's URLs
-        self._urls.delete_many({CREATOR_USERNAME_IDENTIFIER: username})
+        self._urls.delete_many({CREATOR_ID_IDENTIFIER: user_id})
         # Delete user account
-        result = self._users.delete_one({USERNAME_IDENTIFIER: username})
+        result = self._users.delete_one({USER_ID_IDENTIFIER: user_id})
         # Raise exception if no account deleted
         if result.deleted_count == 0:
             raise UserNotFoundError

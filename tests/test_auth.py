@@ -2,6 +2,7 @@ from datetime import datetime
 import pytest
 
 from pymongo.collection import Collection
+from bson.objectid import ObjectId
 from pymongo import MongoClient
 from argon2 import PasswordHasher
 
@@ -17,7 +18,7 @@ from yocto.lib.utils import (
     LONG_URL_IDENTIFIER,
     SHORT_ID_IDENTIFIER,
     URL_CREATION_DATE_IDENTIFIER,
-    CREATOR_USERNAME_IDENTIFIER,
+    CREATOR_ID_IDENTIFIER,
 )
 
 @pytest.fixture()
@@ -72,7 +73,8 @@ class TestUserAuthenticator:
         auth = UserAuthenticator(mongo_client.tests)
         username = "test_user"
         password = "Test_p4s$word"
-        auth.register_user(username, password)
+        user_id = auth.register_user(username, password)
+        assert isinstance(user_id, ObjectId)
         user_record = mongo_client.tests.users.find_one({"username": "test_user"})
         assert user_record is not None
         assert password not in user_record.values()
@@ -87,7 +89,8 @@ class TestUserAuthenticator:
         username = "test_user"
         password = "Test_p4s$word"
         auth.register_user(username, password)
-        assert auth.authenticate_user(username, password)
+        user_id = auth.authenticate_user(username, password)
+        assert isinstance(user_id, ObjectId)
         with pytest.raises(PasswordMismatchError):
             auth.authenticate_user(username, "wrong_password")
         with pytest.raises(UserNotFoundError):
@@ -104,20 +107,18 @@ class TestUserAuthenticator:
         auth = UserAuthenticator(mongo_client.tests)
         username = "test_user"
         password = "Test_p4s$word"
-        auth.register_user(username, password)
+        user_id = auth.register_user(username, password)
         assert mongo_client.tests.users.find_one({"username": "test_user"}) is not None
-        auth.delete_user(username)
+        auth.delete_user(user_id)
         assert mongo_client.tests.users.find_one({"username": "test_user"}) is None
+        with pytest.raises(UserNotFoundError):
+            auth.delete_user(user_id)  # user no longer exists
 
     def test_delete_user_fails_on_injection_attempt(self, mongo_client):
         auth = UserAuthenticator(mongo_client.tests)
         username = "test_user"
         password = "Test_p4s$word"
         auth.register_user(username, password)
-        assert mongo_client.tests.users.find_one({"username": "test_user"}) is not None
-        with pytest.raises(UserNotFoundError):
-            # Code parsed as string e.g. user has this username
-            auth.delete_user("{'$gt': ''}")
         with pytest.raises(TypeError):
             auth.delete_user({"$gt": ""})
 
@@ -126,40 +127,41 @@ class TestUserAuthenticator:
         auth = UserAuthenticator(mongo_client.tests)
         username = "test_user"
         password = "Test_p4s$word"
-        auth.register_user(username, password)
+        user_id = auth.register_user(username, password)
         assert mongo_client.tests.users.find_one({"username": "test_user"}) is not None
         
         # Insert urls belonging to user and others into urls_collection
         urls: Collection = mongo_client.tests.urls
         different_username = "different_user"
+        user_id2 = auth.register_user(different_username, "Test_p4s$word2")
         urls.insert_many(
             [
                 {
                     LONG_URL_IDENTIFIER: "https://www.example.com/long/relative/path/?var=5#fragment",
                     SHORT_ID_IDENTIFIER: "abcdef1",
                     URL_CREATION_DATE_IDENTIFIER: datetime.now(),
-                    CREATOR_USERNAME_IDENTIFIER: username,
+                    CREATOR_ID_IDENTIFIER: user_id,
                 },
                 {
                     LONG_URL_IDENTIFIER: "https://www.example1.com",
                     SHORT_ID_IDENTIFIER: "Xa8b29q",
                     URL_CREATION_DATE_IDENTIFIER: datetime.now(),
-                    CREATOR_USERNAME_IDENTIFIER: username,
+                    CREATOR_ID_IDENTIFIER: user_id,
                 },
                 {
                     LONG_URL_IDENTIFIER: "https://www.test.org/path",
                     SHORT_ID_IDENTIFIER: "u9Ms41p",
                     URL_CREATION_DATE_IDENTIFIER: datetime.now(),
-                    CREATOR_USERNAME_IDENTIFIER: "different_user",
+                    CREATOR_ID_IDENTIFIER: user_id2,
                 },
             ]
         )
 
         # Delete the user
-        auth.delete_user(username)
+        auth.delete_user(user_id)
         # User removed from users
         assert mongo_client.tests.users.find_one({"username": "test_user"}) is None
         # User's links removed from urls
-        assert urls.find_one({CREATOR_USERNAME_IDENTIFIER: username}) is None
+        assert urls.find_one({CREATOR_ID_IDENTIFIER: user_id}) is None
         # Other users' links remain in urls
-        assert urls.find_one({CREATOR_USERNAME_IDENTIFIER: different_username}) is not None
+        assert urls.find_one({CREATOR_ID_IDENTIFIER: user_id2}) is not None

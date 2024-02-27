@@ -9,6 +9,7 @@ from flask import (
     session,
     g,
 )
+from bson.objectid import ObjectId
 
 from yocto.auth import UserAuthenticator
 from yocto.address import AddressManager
@@ -21,7 +22,12 @@ from yocto.lib.exceptions import (
     UrlInvalidError,
     UrlExistsError,
 )
-from yocto.lib.utils import USERNAME_IDENTIFIER, LONG_URL_IDENTIFIER, SHORT_ID_IDENTIFIER
+from yocto.lib.utils import (
+    USER_ID_IDENTIFIER, 
+    USERNAME_IDENTIFIER, 
+    LONG_URL_IDENTIFIER, 
+    SHORT_ID_IDENTIFIER,
+)
 
 bp = Blueprint("pages", __name__, url_prefix="/pages")
 
@@ -32,7 +38,7 @@ def load_logged_in_user():
         g.user = None
     else:
         db = get_db()
-        user = db.users.find_one({USERNAME_IDENTIFIER: user_id})
+        user = db.users.find_one({USER_ID_IDENTIFIER: ObjectId(user_id)})
         g.user = user
 
 def login_required(view):
@@ -58,7 +64,7 @@ def signup():
         if request.form["pw"] == request.form["rep_pw"]:
             auth = UserAuthenticator(get_db())
             try:
-                auth.register_user(user, password)
+                user_id = auth.register_user(user, password)
             except UsernameInvalidError:
                 return render_template(
                     "pages/signup.html", 
@@ -71,7 +77,7 @@ def signup():
                     message="Password not valid.",  # TODO: better message
                     form=request.form,
                 )
-            session["user"] = user
+            session["user"] = str(user_id)
             return redirect(url_for("pages.login_success", user=user))
         else:
             return render_template(
@@ -94,7 +100,7 @@ def login():
         password = request.form["pw"]
         auth = UserAuthenticator(get_db())
         try:
-            auth.authenticate_user(user, password)
+            user_id = auth.authenticate_user(user, password)
         except UserNotFoundError:
             return render_template(
                 "pages/login.html", 
@@ -107,7 +113,7 @@ def login():
                 form=request.form,
                 message="Password incorrect.",
             )
-        session["user"] = user
+        session["user"] = str(user_id)
         return redirect(url_for("pages.login_success", user=user))    
     else:
         form = {"uname": "", "pw": ""}
@@ -140,7 +146,7 @@ def delete():
 @login_required
 def delete_confirmed():
     auth = UserAuthenticator(get_db())
-    auth.delete_user(g.user[USERNAME_IDENTIFIER])
+    auth.delete_user(g.user[USER_ID_IDENTIFIER])
     session.clear()
     return redirect(url_for("pages.index", disp="account-delete-success"))
 
@@ -156,7 +162,7 @@ def create():
         am = AddressManager(get_db())
         short_id = am.generate_short_id()
         try:
-            am.store_url_and_id(long_url, short_id, g.user[USERNAME_IDENTIFIER])
+            am.store_url_and_id(long_url, short_id, g.user[USER_ID_IDENTIFIER])
         except UrlInvalidError:
             return render_template(
             "pages/create.html",
@@ -192,7 +198,7 @@ def create():
 @login_required
 def my_links():
     am = AddressManager(get_db())
-    addresses = am.lookup_user_urls(g.user[USERNAME_IDENTIFIER])
+    addresses = am.lookup_user_urls(g.user[USER_ID_IDENTIFIER])
     return render_template(
         "pages/my_links.html", 
         links=[

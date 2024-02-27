@@ -4,6 +4,7 @@ import secrets
 import math
 
 from pymongo.collection import Collection
+from bson.objectid import ObjectId
 from validators import url
 
 from yocto.lib.exceptions import (
@@ -17,9 +18,9 @@ from yocto.lib.utils import (
     LONG_URL_IDENTIFIER,
     SHORT_ID_IDENTIFIER,
     URL_CREATION_DATE_IDENTIFIER,
-    CREATOR_USERNAME_IDENTIFIER,
+    CREATOR_ID_IDENTIFIER,
     VISITS_COUNT_IDENTIFIER,
-    USERNAME_IDENTIFIER,
+    USER_ID_IDENTIFIER,
 )
 
 class AddressManager:
@@ -97,25 +98,27 @@ class AddressManager:
                 break
         return short_id
 
-    def store_url_and_id(self, long_url, short_id, creator_username):
+    def store_url_and_id(self, long_url, short_id, creator_id):
         """
         Store a long URL with its associated shortened ID in the collection.
 
         :param str long_url: The long URL to which the shortened address points.
         :param str short_id: The ID part of the shortened URL.
-        :param str creator_username: The username of the account creating the 
-            database entry.
+        :param bson.objectid.ObjectId creator_id: The user ID of the account creating the 
+        database entry.
         
         :raises UrlInvalidError: If `long_url` is not a valid URL.
-        :raises UserNotFoundError: If `creator_username` is not registered in
-            the users collection of the database.
+        :raises UserNotFoundError: If `creator_id` is not registered in
+        the users collection of the database.
         :raises UrlExistsError: If `long_url` is already in the urls collection.
         """
         if not url(long_url):
             raise UrlInvalidError
-        for var in [long_url, short_id, creator_username]:
+        for var in [long_url, short_id]:
             _verify_type(var, str)
-        if self._users.find_one({USERNAME_IDENTIFIER: creator_username}) is None:
+        _verify_type(creator_id, ObjectId)
+        user_record = self._users.find_one({USER_ID_IDENTIFIER: creator_id})
+        if user_record is None:
             raise UserNotFoundError
         if self._urls.find_one({LONG_URL_IDENTIFIER: long_url}) is not None:
             raise UrlExistsError
@@ -124,7 +127,7 @@ class AddressManager:
                 LONG_URL_IDENTIFIER: long_url,
                 SHORT_ID_IDENTIFIER: short_id,
                 URL_CREATION_DATE_IDENTIFIER: datetime.now(),
-                CREATOR_USERNAME_IDENTIFIER: creator_username,
+                CREATOR_ID_IDENTIFIER: user_record[USER_ID_IDENTIFIER],
                 VISITS_COUNT_IDENTIFIER: 0,
             }
         )
@@ -196,22 +199,22 @@ class AddressManager:
         else:
             return "/".join([domain, short_id])
         
-    def lookup_user_urls(self, username):
+    def lookup_user_urls(self, user_id):
         """
         Find all URLs belonging to a specific user.
 
-        :param str username: The username associated with the returned link
+        :param str user_id: The user ID associated with the returned link
         information.
 
-        :raises UserNotFoundError: If the username is not present in the users
+        :raises UserNotFoundError: If the user is not present in the users
         collection.
 
         :return: All URLs created by the specified user, as a sequence of 
         dictionaries.
         :rtype: list[dict]
         """
-        if self._users.find_one({USERNAME_IDENTIFIER: username}) is None:
+        if self._users.find_one({USER_ID_IDENTIFIER: user_id}) is None:
             raise UserNotFoundError
-        cursor = self._urls.find({CREATOR_USERNAME_IDENTIFIER: username})
+        cursor = self._urls.find({CREATOR_ID_IDENTIFIER: user_id})
         return [link for link in cursor]
 
