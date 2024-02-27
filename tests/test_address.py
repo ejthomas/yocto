@@ -19,6 +19,7 @@ from yocto.lib.utils import (
     SHORT_ID_IDENTIFIER,
     URL_CREATION_DATE_IDENTIFIER,
     CREATOR_USERNAME_IDENTIFIER,
+    VISITS_COUNT_IDENTIFIER,
     USERNAME_IDENTIFIER,
     PASSWORD_HASH_IDENTIFIER,
     ACCOUNT_CREATION_DATE_IDENTIFIER,
@@ -74,6 +75,7 @@ def mongo_client_with_data(mongo_client):
             SHORT_ID_IDENTIFIER: "abcdef1",
             URL_CREATION_DATE_IDENTIFIER: datetime(2020, 6, 1, 9, 0, 0),
             CREATOR_USERNAME_IDENTIFIER: "example_user1",
+            VISITS_COUNT_IDENTIFIER: 125,
         }
     )
 
@@ -84,6 +86,7 @@ def mongo_client_with_data(mongo_client):
             SHORT_ID_IDENTIFIER: "shortid",
             URL_CREATION_DATE_IDENTIFIER: datetime(2020, 1, 1, 9, 0, 0),
             CREATOR_USERNAME_IDENTIFIER: "example_user1",
+            VISITS_COUNT_IDENTIFIER: 0,
         }
     )
 
@@ -94,6 +97,7 @@ def mongo_client_with_data(mongo_client):
             SHORT_ID_IDENTIFIER: "1234567",
             URL_CREATION_DATE_IDENTIFIER: datetime(2020, 10, 1, 9, 0, 0),
             CREATOR_USERNAME_IDENTIFIER: "example_user2",
+            VISITS_COUNT_IDENTIFIER: 9,
         }
     )
 
@@ -199,6 +203,15 @@ class TestAddressManager:
         assert am.lookup_short_id("abcdef1") == long_url
         with pytest.raises(UrlNotFoundError):
             am.lookup_short_id("xyz1234")
+
+    def test_lookup_short_id_count_visit(self, mongo_client_with_data):
+        urls: Collection = mongo_client_with_data.tests.urls
+        am = AddressManager(mongo_client_with_data.tests)
+        short_id = "abcdef1"
+        long_url = "https://www.example.com/long/relative/path/?var=5#fragment"
+        visits = urls.find_one({SHORT_ID_IDENTIFIER: short_id})[VISITS_COUNT_IDENTIFIER]
+        assert am.lookup_short_id(short_id, count_visit=True) == long_url
+        assert urls.find_one({SHORT_ID_IDENTIFIER: short_id})[VISITS_COUNT_IDENTIFIER] == visits + 1
 
     def test_delete_url(self, mongo_client):
         urls: Collection = mongo_client.tests.urls

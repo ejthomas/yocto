@@ -15,7 +15,7 @@ def index(short_id=None):
     else:
         am = AddressManager(get_db())
         try:
-            long_url = am.lookup_short_id(short_id)
+            long_url = am.lookup_short_id(short_id, count_visit=True)
         except UrlNotFoundError:
             return redirect(url_for("pages.error", message="Sorry, this shortened address is not valid."))
         return redirect(long_url)

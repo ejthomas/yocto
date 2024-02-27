@@ -6,7 +6,10 @@ from yocto import create_app
 from yocto.db import init_db, get_db
 from yocto.auth import UserAuthenticator
 from yocto.address import AddressManager
-from yocto.lib.utils import LONG_URL_IDENTIFIER, SHORT_ID_IDENTIFIER
+from yocto.lib.utils import (
+    SHORT_ID_IDENTIFIER, 
+    VISITS_COUNT_IDENTIFIER
+)
 
 
 @pytest.fixture()
@@ -59,3 +62,11 @@ def test_index_redirect_invalid(client_with_data, app):
     with app.test_request_context():
         assert url_for("pages.error") in response.request.path
     assert b"shortened address is not valid" in response.data
+
+
+def test_index_redirect_count_visits(client_with_data, app):
+    with app.app_context():
+        db = get_db()
+        visits = db.urls.find_one({SHORT_ID_IDENTIFIER: "abcdef1"})[VISITS_COUNT_IDENTIFIER]
+        client_with_data.get("/abcdef1")
+        assert db.urls.find_one({SHORT_ID_IDENTIFIER: "abcdef1"})[VISITS_COUNT_IDENTIFIER] == visits + 1

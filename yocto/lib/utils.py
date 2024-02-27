@@ -8,6 +8,7 @@ LONG_URL_IDENTIFIER = "long_url"
 SHORT_ID_IDENTIFIER = "short_id"
 URL_CREATION_DATE_IDENTIFIER = "creation_date"
 CREATOR_USERNAME_IDENTIFIER = "creator_username"
+VISITS_COUNT_IDENTIFIER = "visits_count"
 
 def _verify_type(parameter, expected_type):
     if not isinstance(parameter, expected_type):
