@@ -63,6 +63,19 @@ def test_index_disp(client):
     assert b"Welcome to Yocto URL shortener." in response.data  # welcome text
 
 
+def test_navigation_bar(client_with_data):
+    response = client_with_data.get("/pages/")
+    assert b"Home" in response.data
+    assert b"Sign Up" in response.data
+    assert b"Login" in response.data
+    response = client_with_data.post("/pages/login/", data={"uname": "new_user", "pw": "V4l1d_password"}, follow_redirects=True)
+    assert b"Home" in response.data
+    assert regex.search(r"<a.*>new_user</a>", response.text) is not None  # check username in link because it also appears in page body
+    assert b"Shorten URL" in response.data
+    assert b"My Links" in response.data
+    assert b"Logout" in response.data
+    
+
 def test_signup_get(client):
     response = client.get("/pages/signup/")
     assert b'<form action = "/pages/signup" method = "post">' in response.data  # display the form
@@ -173,7 +186,7 @@ def test_account(client_with_data):
         # Follow account route
         response = client.get("/pages/account/")
         assert regex.search(r"<header>\s+<h2>Account</h2>\s+</header>", response.text)  # display header
-        assert regex.search(r"<p>\s+" + session["user"] + r"\s+</p>", response.text)  # display header
+        assert regex.search(r"<p>\s+new_user\s+</p>", response.text)  # display header
         
 
 def test_delete(client_with_data):
