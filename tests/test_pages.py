@@ -186,7 +186,7 @@ def test_account(client_with_data):
         # Follow account route
         response = client.get("/pages/account/")
         assert regex.search(r"<header>\s+<h2>Account</h2>\s+</header>", response.text)  # display header
-        assert regex.search(r"<p>\s+" + session["user"] + r"\s+</p>", response.text)  # display header
+        assert regex.search(r"<p>\s+new_user\s+</p>", response.text)  # display header
         
 
 def test_delete(client_with_data):
