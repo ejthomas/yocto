@@ -1,22 +1,16 @@
 import os
+import json
 
 from flask import Flask
 
-def create_app(test_config=None):
-    app = Flask(__name__)
-    # Default config
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        TESTING=False,
-        DATABASE="yocto",
-    )
+import yocto.config as config
 
-    if test_config is None:
-        # Instance config if exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
-    else:
-        # Test config, when testing
-        app.config.from_mapping(test_config)
+def create_app(configType=None):
+    app = Flask(__name__)
+    
+    app.config.from_object(getattr(config, configType, config.DevelopmentConfig))
+    if not app.config["DEBUG"]:
+        app.config.from_file(os.getenv("SECRET_KEY_PATH", f"{app.instance_path}/secret_key.json"), load=json.load, silent=False)
 
     # ensure the instance folder exists
     try:

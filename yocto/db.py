@@ -1,3 +1,5 @@
+import os
+
 from flask import g, current_app
 import click
 from pymongo import MongoClient
@@ -15,11 +17,8 @@ def get_db():
     :rtype: pymongo.database.Database
     """
     if "db" not in g:
-        client = MongoClient(host="localhost", port=27017)
-        # if current_app.testing:
-        #     g.db = client.get_database("tests")
-        # else:
-        #     g.db = client.get_database("yocto")
+        # If in docker, get hostname from env, else look on localhost
+        client = MongoClient(host=os.getenv("DATABASE_HOST", "localhost"), port=27017)  
         g.db = client.get_database(current_app.config['DATABASE'])
     print(g.db.name)
     return g.db

@@ -14,7 +14,7 @@ from yocto.db import (
 
 @pytest.fixture()
 def app():
-    app = create_app({"TESTING": True, "DATABASE": "tests"})
+    app = create_app("TestingConfig")
     with app.app_context():
         init_db()  # work with a fresh database
     yield app
