@@ -9,11 +9,27 @@ Generate shortened web addresses quickly and easily.
 
 # Installation
 
-TBC.
+Yocto is designed for deployment on the web, but until it is released you can try out the latest build by running it in a Docker container locally.
+
+After cloning the repository and [installing Docker](https://docs.docker.com/desktop/), the easiest way to try the app is to use Docker Compose.
+
+```
+cd yocto
+docker compose up -d
+```
 
 # Usage
 
-TBC.
+When the containers are runnign, Yocto is available at http://localhost:8080.
+
+## 1. Create an account
+Visit the Sign Up page to create an account. 
+
+## 2. Shorten web addresses
+Once logged in, you can shorten links on the Shorten URL page. Your previously created shortened addresses are stored on the My Links page. 
+
+## 3. Deleting your account
+If you would like to delete your account, click your username in the navigation bar and select "Delete Account".
 
 # Contribute
 
