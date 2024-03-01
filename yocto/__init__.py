@@ -10,7 +10,7 @@ def create_app(configType=None):
     app = Flask(__name__)
     
     app.config.from_object(getattr(config, configType, config.DevelopmentConfig))
-    if not app.config["DEBUG"]:
+    if configType == "ProductionConfig":
         app.config.from_file(os.getenv("SECRET_KEY_PATH", f"{app.instance_path}/secret_key.json"), load=json.load, silent=False)
 
     # ensure the instance folder exists
