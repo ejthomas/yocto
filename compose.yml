@@ -15,8 +15,9 @@ services:
     environment:
       - SECRET_KEY_PATH=/run/secrets/secret_key
       - DATABASE_HOST=db
-    ports:
-      - "8000:5000"
+      - NGINX_CONF=./nginx/nginx.conf
+    expose:
+      - 5000
     depends_on:
       - db
     networks:
@@ -25,6 +26,18 @@ services:
     secrets:
       - secret_key
 
+  nginx-proxy:
+      image: nginx:latest
+      ports:
+        - "8080:80"
+        - "8081:443"
+      volumes:
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      networks:
+        - front-tier
+      depends_on:
+        - app
+    
 volumes:
   db-data:
 
